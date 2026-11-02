@@ -1,3 +1,113 @@
+# AI Data Analyst
+
+**Connecting Large Language Models to Enterprise Data — From Simple Questions to AI-Assisted Investigations**
+
+**Author:** Jaime Requejo  
+**Project type:** Technical Proof of Concept (PoC)  
+**Technologies:** Python · Flask · PostgreSQL · MCP · Apache Superset · Ollama
+
+---
+
+## 1. Project Overview
+
+AI Data Analyst is a proof-of-concept application designed to demonstrate how Large Language Models (LLMs) can be connected to existing enterprise data sources, including relational databases and Business Intelligence (BI) platforms, using the Model Context Protocol (MCP).
+
+The objective is to illustrate the architecture, integration process, workflows, and tools required to enable LLMs to interact with structured enterprise data.
+
+**This project is not intended to be a general-purpose or production-ready analytics platform.**
+
+It demonstrates the journey from connecting an LLM to enterprise data to obtaining meaningful answers and conducting AI-assisted investigations.
+
+### 1.1 Core Capabilities
+
+The application explores two complementary approaches.
+
+**ASK — Natural Language Data Exploration**
+
+Demonstrates how an LLM can:
+
+- Interpret natural-language business questions.
+- Discover available data and metadata.
+- Identify and invoke appropriate MCP tools.
+- Generate and execute permitted data queries.
+- Interpret query results.
+- Produce understandable, data-grounded answers.
+
+**INVESTIGATE — AI-Assisted Investigations**
+
+Demonstrates how an LLM can move beyond simple questions to:
+
+- Develop and refine analytical questions.
+- Perform iterative, multi-step investigations.
+- Identify patterns, anomalies, and relationships.
+- Generate observations and hypotheses.
+- Suggest additional investigative actions.
+- Use specialized analytical tools.
+- Support graph-based exploration and visualization.
+- Maintain evidence and execution traces.
+
+Investigative findings and hypotheses require human validation. They do not automatically establish causality or wrongdoing.
+
+### 1.2 Specialized Analytical Tools
+
+The application also demonstrates how additional tools can extend the analytical capabilities of an LLM.
+
+Examples include:
+
+- Database schema and metadata discovery.
+- SQL-based analytical operations.
+- External Python functions.
+- Business Intelligence tools.
+- Graph-based relationship exploration.
+- Visualization capabilities.
+- Multi-step investigative workflows.
+
+The objective is to demonstrate how tool integration can improve the analytical process rather than relying exclusively on the LLM's generated responses.
+
+### 1.3 What This Project Aims to Demonstrate
+
+1. Connect an LLM-driven application to existing enterprise data sources through MCP.
+2. Provide sufficient metadata and context for meaningful interpretation.
+3. Translate natural-language requests into controlled tool calls and data operations.
+4. Explain analytical results using the evidence returned by the data sources.
+5. Extend simple questions into iterative investigations.
+6. Incorporate specialized tools for deeper analysis.
+7. Identify the architectural and operational considerations required for enterprise deployment.
+
+---
+
+## 2. Scope and Limitations
+
+AI Data Analyst is an experimental demonstration.
+
+It intentionally focuses on the core integration and investigation workflows.
+
+It does not attempt to implement all the requirements of a secure, scalable, governed, and operationally robust enterprise AI analytics platform.
+
+### 2.1 Production Considerations
+
+A production implementation would require additional engineering, validation, and controls.
+
+| Area | Additional Requirements |
+|---|---|
+| Data Privacy | PII detection, masking, anonymization, data minimization, and sensitive-data handling |
+| Authentication | User authentication, identity integration, and session management |
+| Authorization | Fine-grained permissions and data access policies |
+| Query Security | SQL validation, read-only enforcement, execution limits, and protection against unsafe queries |
+| Auditing | Audit trails for prompts, generated queries, tool calls, results, and administrative actions |
+| Metadata Management | Comprehensive metadata and semantic models, business definitions, relationships, and data lineage |
+| Error Management | SQL error analysis, exception handling, recovery mechanisms, and systematic failure analysis |
+| LLM Operations | Token monitoring, context management, resource limits, and model evaluation |
+| Visualization | Additional chart types, interactive visualizations, and advanced graph analysis |
+| Observability | Structured logging, monitoring, tracing, and performance metrics |
+| Scalability | Concurrency management, resource isolation, and infrastructure hardening |
+| Governance | Data policies, model governance, compliance, and operational controls |
+
+The exact requirements depend on the organization's architecture, security policies, regulatory obligations, and risk profile.
+
+**The purpose of this PoC is to demonstrate the integration process and identify these architectural considerations, not to imply that they have already been solved.**
+
+
 # AI Data Analyst — Installation, Configuration, Startup & Validation
 
 **Deployment guide | PostgreSQL · MCP · Apache Superset · Ollama · Flask**
