@@ -1,0 +1,12 @@
+# Web Framework & Auth
+Flask
+Flask-WTF
+mcp
+ollama
+python-dotenv
+
+
+
+
+
+

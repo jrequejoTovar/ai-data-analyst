@@ -1,0 +1,52 @@
+-- 01_schema.sql
+-- Creates the HR analytics table used by the AI Data Analyst.
+
+DROP TABLE IF EXISTS public.employees;
+
+CREATE TABLE public.employees (
+    employee_id INTEGER PRIMARY KEY,
+    age INTEGER,
+    over_18 TEXT,
+    age_when_hired INTEGER,
+    standard_hours INTEGER,
+    monthly_rate INTEGER,
+    daily_rate INTEGER,
+    hourly_rate INTEGER,
+    fte NUMERIC(6,2),
+    headcount INTEGER,
+    gender TEXT,
+    marital_status TEXT,
+    children_num INTEGER,
+    education_level TEXT,
+    education_branch TEXT,
+    education_grade TEXT,
+    business_unit TEXT,
+    job_role TEXT,
+    personal_income_monthly INTEGER,
+    avg_pay_for_similar_exp INTEGER,
+    distance_from_home INTEGER,
+    total_working_years INTEGER,
+    num_companies_worked INTEGER,
+    tenure_at_company INTEGER,
+    years_with_current_manager INTEGER,
+    years_in_current_role INTEGER,
+    years_since_last_promotion INTEGER,
+    training_times_past_year INTEGER,
+    business_travel TEXT,
+    overtime TEXT,
+    extra_hours_per_week INTEGER,
+    job_satisfaction TEXT,
+    job_involvement TEXT,
+    environment_satisfaction TEXT,
+    relationship_satisfaction TEXT,
+    work_life_balance TEXT,
+    year_1_performance TEXT,
+    year_1_percent_hike INTEGER,
+    year_2_performance TEXT,
+    year_2_percent_hike INTEGER,
+    attrition TEXT,
+    snapshot_date DATE,
+    hire_date DATE,
+    termination_date DATE
+);
+

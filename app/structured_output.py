@@ -1,0 +1,504 @@
+"""
+Structured output utilities for the AI Data Analyst.
+
+The LLM generates the semantic analysis:
+- answer
+- facts
+- observations
+- hypotheses
+- recommendations
+- visualizations
+
+The application controls:
+- evidence
+- trace
+
+Facts, observations and visualizations may reference application-
+controlled evidence IDs so the final result can be grounded.
+"""
+
+import json
+import re
+
+
+DEFAULT_ANALYSIS = {
+    "answer": "",
+    "facts": [],
+    "observations": [],
+    "hypotheses": [],
+    "recommendations": [],
+    "visualizations": [],
+}
+
+
+ALLOWED_VISUALIZATION_TYPES = {
+    "bar",
+    "line",
+    "pie",
+    "scatter",
+    "combo",
+}
+
+
+def extract_json(text: str) -> dict:
+    """
+    Extract one JSON object from an LLM response.
+    """
+
+    if not text:
+        raise ValueError(
+            "The LLM returned an empty response."
+        )
+
+    text = text.strip()
+
+    if text.startswith("```"):
+        text = re.sub(
+            r"^```(?:json)?\s*",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = re.sub(
+            r"\s*```$",
+            "",
+            text,
+        )
+        text = text.strip()
+
+    try:
+        result = json.loads(text)
+
+        if not isinstance(result, dict):
+            raise ValueError(
+                "Structured output must be a JSON object."
+            )
+
+        return result
+
+    except json.JSONDecodeError:
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+
+    if (
+        start == -1
+        or end == -1
+        or end <= start
+    ):
+        raise ValueError(
+            "No JSON object was found in the LLM response."
+        )
+
+    candidate = text[start:end + 1]
+
+    try:
+        result = json.loads(candidate)
+
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Invalid JSON returned by the LLM: {exc}"
+        ) from exc
+
+    if not isinstance(result, dict):
+        raise ValueError(
+            "Structured output must be a JSON object."
+        )
+
+    return result
+
+
+def _normalize_evidence_list(
+    value,
+    field_name: str,
+) -> list:
+    """
+    Normalize evidence references used by facts and observations.
+
+    Accepted input:
+    - "ev_1"
+    - ["ev_1", "ev_2"]
+
+    Normalized output:
+    - ["ev_1"]
+    - ["ev_1", "ev_2"]
+    """
+
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        value = [value]
+
+    if not isinstance(value, list):
+        raise ValueError(
+            f"'evidence' in '{field_name}' "
+            "must be a string or a list of strings."
+        )
+
+    normalized = []
+
+    for evidence_id in value:
+
+        if not isinstance(
+            evidence_id,
+            str,
+        ):
+            raise ValueError(
+                f"Every evidence reference in "
+                f"'{field_name}' must be a string."
+            )
+
+        evidence_id = evidence_id.strip()
+
+        if not evidence_id:
+            raise ValueError(
+                f"Evidence references in "
+                f"'{field_name}' cannot be empty."
+            )
+
+        normalized.append(evidence_id)
+
+    return normalized
+
+
+def _normalize_statement_item(
+    item,
+    field_name: str,
+) -> dict:
+    """
+    Normalize facts, observations, hypotheses and recommendations.
+    """
+
+    if isinstance(item, str):
+        return {
+            "statement": item.strip()
+        }
+
+    if not isinstance(item, dict):
+        raise ValueError(
+            f"Invalid item in '{field_name}'."
+        )
+
+    statement = item.get("statement")
+
+    if not isinstance(statement, str):
+        raise ValueError(
+            f"Each item in '{field_name}' must "
+            "contain a string 'statement'."
+        )
+
+    clean_item = {
+        "statement": statement.strip()
+    }
+
+    # Preserve optional semantic metadata used by the UI.
+    for optional_field in [
+        "importance",
+        "value",
+        "metric",
+    ]:
+        if optional_field in item:
+            clean_item[optional_field] = (
+                item[optional_field]
+            )
+
+    # Facts and observations are expected to be grounded in
+    # application-controlled evidence.
+    if field_name in {
+        "facts",
+        "observations",
+    }:
+        clean_item["evidence"] = (
+            _normalize_evidence_list(
+                item.get("evidence"),
+                field_name,
+            )
+        )
+
+    # Hypotheses and recommendations may also carry evidence
+    # references when Qwen supplies them, but they are optional.
+    elif "evidence" in item:
+        clean_item["evidence"] = (
+            _normalize_evidence_list(
+                item.get("evidence"),
+                field_name,
+            )
+        )
+
+    return clean_item
+
+
+def validate_analysis(data: dict) -> dict:
+    """
+    Validate and normalize the semantic analysis generated by the LLM.
+    """
+
+    if not isinstance(data, dict):
+        raise ValueError(
+            "Analysis must be a dictionary."
+        )
+
+    normalized = {
+        key: (
+            value.copy()
+            if isinstance(value, dict)
+            else value.copy()
+            if isinstance(value, list)
+            else value
+        )
+        for key, value in DEFAULT_ANALYSIS.items()
+    }
+
+    answer = data.get(
+        "answer",
+        "",
+    )
+
+    if not isinstance(answer, str):
+        raise ValueError(
+            "'answer' must be a string."
+        )
+
+    normalized["answer"] = answer.strip()
+
+    list_fields = [
+        "facts",
+        "observations",
+        "hypotheses",
+        "recommendations",
+    ]
+
+    for field in list_fields:
+
+        value = data.get(
+            field,
+            [],
+        )
+
+        if not isinstance(value, list):
+            raise ValueError(
+                f"'{field}' must be a list."
+            )
+
+        normalized[field] = [
+            _normalize_statement_item(
+                item,
+                field,
+            )
+            for item in value
+        ]
+
+    visualizations = data.get(
+        "visualizations",
+        [],
+    )
+
+    if not isinstance(
+        visualizations,
+        list,
+    ):
+        raise ValueError(
+            "'visualizations' must be a list."
+        )
+
+    normalized["visualizations"] = []
+
+    for visualization in visualizations:
+
+        if not isinstance(
+            visualization,
+            dict,
+        ):
+            raise ValueError(
+                "Each visualization must be an object."
+            )
+
+        chart_type = visualization.get(
+            "type"
+        )
+
+        if (
+            chart_type
+            not in ALLOWED_VISUALIZATION_TYPES
+        ):
+            raise ValueError(
+                "Unsupported visualization type: "
+                f"{chart_type}"
+            )
+
+        title = visualization.get(
+            "title"
+        )
+        x = visualization.get("x")
+
+        if not isinstance(title, str):
+            raise ValueError(
+                "Visualization 'title' must be a string."
+            )
+
+        if not isinstance(x, str):
+            raise ValueError(
+                "Visualization 'x' must be a string."
+            )
+
+        clean_visualization = {
+            "type": chart_type,
+            "title": title.strip(),
+            "x": x.strip(),
+        }
+
+        if chart_type == "combo":
+            series = visualization.get(
+                "series",
+                [],
+            )
+
+            if (
+                not isinstance(series, list)
+                or len(series) < 2
+            ):
+                raise ValueError(
+                    "Combo visualization 'series' must "
+                    "contain at least two series."
+                )
+
+            clean_series = []
+
+            for item in series:
+                if not isinstance(item, dict):
+                    raise ValueError(
+                        "Each combo series must be an object."
+                    )
+
+                field = item.get("field")
+                series_type = item.get("type")
+                axis = item.get("axis")
+                label = item.get("label")
+
+                if not isinstance(field, str) or not field.strip():
+                    raise ValueError(
+                        "Combo series 'field' must be a "
+                        "non-empty string."
+                    )
+
+                if series_type not in {"bar", "line"}:
+                    raise ValueError(
+                        "Combo series 'type' must be "
+                        "'bar' or 'line'."
+                    )
+
+                if axis not in {"left", "right"}:
+                    raise ValueError(
+                        "Combo series 'axis' must be "
+                        "'left' or 'right'."
+                    )
+
+                if not isinstance(label, str) or not label.strip():
+                    raise ValueError(
+                        "Combo series 'label' must be a "
+                        "non-empty string."
+                    )
+
+                clean_series.append(
+                    {
+                        "field": field.strip(),
+                        "type": series_type,
+                        "axis": axis,
+                        "label": label.strip(),
+                    }
+                )
+
+            clean_visualization[
+                "series"
+            ] = clean_series
+
+        else:
+            y = visualization.get("y")
+
+            if not isinstance(y, str):
+                raise ValueError(
+                    "Visualization 'y' must be a string."
+                )
+
+            clean_visualization[
+                "y"
+            ] = y.strip()
+
+        if "evidence" in visualization:
+
+            evidence_id = (
+                visualization["evidence"]
+            )
+
+            if not isinstance(
+                evidence_id,
+                str,
+            ):
+                raise ValueError(
+                    "Visualization 'evidence' "
+                    "must be a string."
+                )
+
+            evidence_id = (
+                evidence_id.strip()
+            )
+
+            if not evidence_id:
+                raise ValueError(
+                    "Visualization 'evidence' "
+                    "cannot be empty."
+                )
+
+            clean_visualization[
+                "evidence"
+            ] = evidence_id
+
+        normalized[
+            "visualizations"
+        ].append(
+            clean_visualization
+        )
+
+    return normalized
+
+
+def parse_structured_analysis(
+    text: str,
+) -> dict:
+    """
+    Parse and validate an LLM structured analysis response.
+    """
+
+    data = extract_json(text)
+
+    return validate_analysis(
+        data
+    )
+
+
+def build_final_response(
+    mode: str,
+    analysis: dict,
+    evidence: list,
+    trace: list,
+) -> dict:
+    """
+    Build the final application response.
+
+    Evidence and trace are supplied by the application, not by the LLM.
+    """
+
+    validated_analysis = (
+        validate_analysis(
+            analysis
+        )
+    )
+
+    return {
+        "mode": mode,
+        "analysis": validated_analysis,
+        "evidence": evidence,
+        "trace": trace,
+    }

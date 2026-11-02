@@ -1,0 +1,28 @@
+/* Estilos y fuente globales */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+
+body { 
+    font-family: 'Lato', sans-serif; 
+}
+
+/* CENTRALISED BUTTON CLASS
+  Here we define the style of our main button once.
+  If we want to change the colour of all buttons, we just change the line 'bg-teal-600'.
+*/
+.btn-primary {
+    @apply w-full bg-teal-600 text-white font-bold py-3 rounded-md transition-colors duration-300;
+}
+
+.btn-primary:hover {
+    @apply bg-teal-700;
+}
+
+/* We can create variants, for example, for smaller buttons */
+.btn-secondary {
+    @apply bg-green-500 text-white font-bold px-4 py-2 rounded-md transition-colors duration-300;
+}
+
+.btn-secondary:hover {
+    @apply bg-green-600;
+}
+

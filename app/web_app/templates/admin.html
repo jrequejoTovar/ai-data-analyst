@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Admin · AI Data Analyst{% endblock %}
+{% block content %}
+<main class="simple-page" style="max-width:960px;margin:40px auto;padding:0 24px 60px;">
+  <div style="margin-bottom:28px;">
+    <h1 style="margin-bottom:8px;">Admin</h1>
+    <p style="color:#64748b;">Configure the data source used by AI Data Analyst.</p>
+  </div>
+  <section style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:26px;">
+    <h2 style="font-size:20px;margin:0 0 8px;">MCP Data Source</h2>
+    <p style="color:#64748b;margin:0 0 24px;">Choose the active MCP server used by AI Data Analyst.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+      <label style="display:block;border:1px solid #cbd5e1;border-radius:12px;padding:20px;cursor:pointer;">
+        <input type="radio" name="mcp_source" value="postgres" checked style="accent-color:#4338ca;">
+        <strong style="margin-left:8px;">PostgreSQL</strong>
+        <div style="margin:12px 0 0;color:#64748b;font-size:13px;">Current MCP connection</div>
+        <code style="display:block;margin-top:8px;overflow-wrap:anywhere;font-size:12px;">http://localhost:8001/mcp</code>
+      </label>
+      <label style="display:block;border:1px solid #cbd5e1;border-radius:12px;padding:20px;cursor:pointer;">
+        <input type="radio" name="mcp_source" value="superset" style="accent-color:#4338ca;">
+        <strong style="margin-left:8px;">Apache Superset</strong>
+        <div style="margin:12px 0 0;color:#64748b;font-size:13px;">New MCP connection</div>
+        <code style="display:block;margin-top:8px;overflow-wrap:anywhere;font-size:12px;">http://localhost:5008/mcp</code>
+      </label>
+    </div>
+    <p id="source-preview" role="status" style="margin:22px 0 0;padding:12px 14px;background:#f8fafc;border-radius:9px;color:#475569;font-size:13px;">Selected for preview: PostgreSQL. The active backend connection remains unchanged.</p>
+  </section>
+  <section style="margin-top:20px;border:1px solid #e2e8f0;border-radius:16px;padding:22px 26px;background:#fff;">
+    <h2 style="font-size:18px;margin:0 0 8px;">Coming next</h2>
+    <p style="color:#64748b;margin:0;">MCP connection test, tool discovery, and saving the active data source. Model, prompts and guardrails will follow in a later iteration.</p>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+
+    const radios = document.querySelectorAll(
+        'input[name="mcp_source"]'
+    );
+
+    const preview = document.getElementById("source-preview");
+
+    const labels = {
+        postgres: "PostgreSQL",
+        superset: "Apache Superset"
+    };
+
+    function updatePreview(source, message) {
+        preview.textContent =
+            message || "Active MCP source: " + labels[source];
+    }
+
+    // 1. Load the currently active source from Flask
+    try {
+        const response = await fetch("/api/admin/source");
+
+        if (!response.ok) {
+            throw new Error("Unable to load MCP configuration");
+        }
+
+        const data = await response.json();
+
+        const selected = document.querySelector(
+            `input[name="mcp_source"][value="${data.source}"]`
+        );
+
+        if (selected) {
+            selected.checked = true;
+            updatePreview(data.source);
+        }
+
+    } catch (error) {
+        updatePreview(null, "Error loading MCP configuration.");
+        console.error(error);
+    }
+
+    // 2. Save the source when the user changes the radio
+    radios.forEach(function (radio) {
+
+        radio.addEventListener("change", async function () {
+
+            if (!this.checked) return;
+
+            const source = this.value;
+
+            radios.forEach(r => r.disabled = true);
+
+            updatePreview(
+                source,
+                "Switching MCP source to " + labels[source] + "..."
+            );
+
+            try {
+                const response = await fetch("/api/admin/source", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        source: source
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Unable to update MCP source");
+                }
+
+                const data = await response.json();
+
+                updatePreview(
+                    data.source,
+                    "Active MCP source: " + labels[data.source]
+                );
+
+            } catch (error) {
+
+                updatePreview(
+                    source,
+                    "Error switching MCP source."
+                );
+
+                console.error(error);
+
+                // Restore the actual backend selection
+                try {
+                    const response = await fetch("/api/admin/source");
+                    if (!response.ok) throw new Error("Reload failed");
+
+                    const data = await response.json();
+                    const activeRadio = document.querySelector(
+                        `input[name="mcp_source"][value="${data.source}"]`
+                    );
+
+                    if (activeRadio) activeRadio.checked = true;
+                } catch (reloadError) {
+                    console.error(reloadError);
+                }
+
+            } finally {
+                radios.forEach(r => r.disabled = false);
+            }
+        });
+
+    });
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+{% block title %}Analyst · AI Data Analyst{% endblock %}
+
+{% block content %}
+
+<style>
+    .live-evidence {
+        margin-top: 18px;
+        margin-bottom: 22px;
+    }
+
+    .live-evidence.hidden {
+        display: none;
+    }
+
+    .live-evidence-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .live-evidence-header h3 {
+        margin: 2px 0 0;
+        font-size: 18px;
+    }
+
+    .live-evidence-count {
+        font-size: 12px;
+        color: #6b7280;
+        white-space: nowrap;
+    }
+
+    .live-evidence-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .live-evidence-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 14px 16px;
+        background: #fff;
+        animation: evidenceIn .25s ease-out;
+    }
+
+    .live-evidence-item-head {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .live-evidence-check {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f4f6;
+        flex: 0 0 auto;
+        font-size: 12px;
+    }
+
+    .live-evidence-item strong {
+        font-size: 14px;
+    }
+
+    .live-evidence-item p {
+        margin: 3px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .live-evidence-preview {
+        overflow-x: auto;
+        margin-top: 12px;
+    }
+
+    .live-evidence-preview table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .live-evidence-preview th,
+    .live-evidence-preview td {
+        text-align: left;
+        padding: 7px 9px;
+        border-bottom: 1px solid #f0f0f0;
+        white-space: nowrap;
+    }
+
+    .live-evidence-preview th {
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+    .activity-duration {
+        margin-left: 7px;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 400;
+    }
+
+    .analysis-timing {
+        margin-top: 14px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+
+    .investigation-card {
+        margin-top: 14px;
+        margin-bottom: 22px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .investigation-card > summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+    }
+
+    .investigation-card > summary::-webkit-details-marker { display: none; }
+
+    .investigation-summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .investigation-summary-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .investigation-title { font-size: 14px; }
+
+    .investigation-meta {
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+    .investigation-chevron {
+        color: #6b7280;
+        transition: transform .2s ease;
+    }
+
+    .investigation-card[open] .investigation-chevron {
+        transform: rotate(180deg);
+    }
+
+    .investigation-body {
+        padding: 0 16px 16px;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .investigation-body .activity-card { margin-top: 14px; }
+    .investigation-body .live-evidence { margin-bottom: 0; }
+    .investigation-card.complete { background: #fafafa; }
+
+    
+    @keyframes evidenceIn {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<main class="conversation-shell">
+    <section id="conversation" class="conversation">
+        <div id="welcome" class="welcome">
+            <div class="eyebrow">LOCAL AGENTIC ANALYTICS</div>
+            <h1>
+                What do you want to know<br>
+                about your data?
+            </h1>
+            <p>
+                Ask a business question. The system chooses the
+                analytical strategy, gathers evidence and shows
+                what it is doing as it works.
+            </p>
+            <div class="suggestions">
+                <button
+                    data-question="How many employees have left the company?">
+                    How many employees have left?
+                </button>
+                <button
+                    data-question="Which business units have the highest attrition rates?">
+                    Where is attrition highest?
+                </button>
+                <button
+                    data-question="Why are employees leaving the company? Investigate the available data and identify the factors most strongly associated with employee attrition. Use evidence from the data to support your conclusions. Do not assume causation.">
+                    Why are employees leaving?
+                </button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div class="composer-wrap">
+    <form id="composer" class="composer">
+        <textarea
+            id="question"
+            rows="1"
+            placeholder="Ask anything about your data..."
+            autocomplete="off"></textarea>
+        <button
+            id="sendButton"
+            type="submit"
+            aria-label="Send">↑</button>
+    </form>
+    <div class="composer-note">
+        Operational progress is shown; private chain-of-thought
+        is not exposed.
+    </div>
+</div>
+
+<template id="turnTemplate">
+    <section class="turn">
+        <div class="user-row">
+            <div class="user-bubble"></div>
+        </div>
+        <div class="assistant-row">
+            <!-- <div class="assistant-avatar ie-avatar">
+                <img
+                    src="{{ url_for('static', filename='images/ie-university-logo.svg') }}"
+                    alt="IE University"
+                >
+            </div>> -->
+            <div class="assistant-avatar">AI</div>
+
+            <div class="assistant-content">
+
+                <div class="assistant-name">
+                    AI Data Analyst
+                </div>
+
+
+                <!-- INVESTIGATION WORKSPACE -->
+
+                <details class="investigation-card" open>
+
+                    <summary>
+                        <div class="investigation-summary">
+                            <span class="activity-pulse investigation-pulse"></span>
+
+                            <div class="investigation-summary-copy">
+                                <strong class="investigation-title">
+                                    Investigation in progress
+                                </strong>
+
+                                <span class="investigation-meta">
+                                    Collecting and comparing evidence...
+                                </span>
+                            </div>
+                        </div>
+
+                        <span class="investigation-chevron">⌃</span>
+                    </summary>
+
+                    <div class="investigation-body">
+
+                <details class="activity-card" open>
+
+                    <summary>
+
+                        <div class="activity-summary">
+
+                            <span class="activity-pulse"></span>
+
+                            <div>
+                                <strong class="activity-title">
+                                    Starting analysis
+                                </strong>
+
+                                <span class="activity-message">
+                                    Preparing the analytical workflow.
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <span class="chevron">⌃</span>
+
+                    </summary>
+
+                    <div class="activity-detail"></div>
+
+                </details>
+
+
+                <!-- PROGRESSIVE EVIDENCE -->
+
+                <section class="live-evidence hidden">
+
+                    <div class="live-evidence-header">
+
+                        <div>
+                            <div class="section-kicker live-evidence-kicker">
+                                Evidence collected so far
+                            </div>
+
+                            <h3 class="live-evidence-status">
+                                The analysis is still running
+                            </h3>
+                        </div>
+
+                        <span class="live-evidence-count">
+                            0 evidence items
+                        </span>
+
+                    </div>
+
+                    <div class="live-evidence-list"></div>
+
+                </section>
+                    </div>
+
+                </details>
+
+
+                <!-- FINAL ANSWER -->
+
+                <div class="final-answer hidden">
+
+                    <section class="key-finding">
+
+                        <div class="section-kicker">
+                            Key finding
+                        </div>
+
+                        <div class="answer-text"></div>
+
+                        <div class="analysis-timing"></div>
+
+                    </section>
+
+
+                    <div class="insights"></div>
+
+
+                    <section class="visual-evidence hidden">
+
+                        <div class="section-heading">
+
+                            <h3>Visual evidence</h3>
+
+                            <span class="visual-evidence-note">
+                                Charts grounded in the evidence
+                                collected by the agent.
+                            </span>
+
+                        </div>
+
+                        <div class="charts-grid"></div>
+
+                    </section>
+
+
+                    <details class="evidence-section">
+
+                        <summary>
+                            Evidence & operational trace
+                        </summary>
+
+                        <div class="audit-grid">
+
+                            <div>
+                                <h4>Evidence Ledger</h4>
+                                <div class="evidence-list"></div>
+                            </div>
+
+                            <div>
+                                <h4>Agent Trace</h4>
+                                <div class="trace-list"></div>
+                            </div>
+
+                        </div>
+
+                    </details>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</template>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/analyst.js') }}"></script>
+
+{% endblock %}
