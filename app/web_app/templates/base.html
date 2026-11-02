@@ -14,22 +14,35 @@
 </head>
 <body>
 <header class="topbar">
-    <a class="brand" href="{{ url_for('analyst') }}">
-        <span class="brand-mark brand-mark-ie">
+    <div class="brand">
+
+        <!-- Logo JRT: LinkedIn -->
+        <a
+            href="https://www.linkedin.com/in/jaimerequejotovar/"
+            class="brand-mark brand-mark-ie"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Visit my LinkedIn profile"
+        >
             <img
-                src="{{ url_for('static', filename='images/ie-university-logo.svg') }}"
-                alt="IE University"
+                src="{{ url_for('static', filename='images/JRT_Badge.png') }}"
+                alt="Jaime Requejo Tovar"
             >
-        </span>
-        <span>
+        </a>
+
+        <!-- Application title -->
+        <a href="{{ url_for('analyst') }}" class="brand-title">
             <strong>AI DATA ANALYST</strong>
             <small>Evidence-based local analytics</small>
-        </span>
-    </a>
+        </a>
+
+    </div>
+
     <nav>
         <a class="active" href="{{ url_for('analyst') }}">Analyst</a>
         <a href="{{ url_for('admin') }}">Admin</a>
     </nav>
+
     <span class="local-status"><i></i> Local AI</span>
 </header>
 

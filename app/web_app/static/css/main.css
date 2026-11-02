@@ -47,3 +47,24 @@
     max-height: 37px;
     object-fit: contain;
 }
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-mark-ie {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.brand-title {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+}
